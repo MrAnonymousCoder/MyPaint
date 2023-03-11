@@ -102,7 +102,7 @@ def save():
 def load():
     global warning_visible
     try:
-        canvas.canvas = pygame.image.load("MyPaintings/"+text_input.text+".png").copy()
+        canvas.canvas = pygame.transform.scale(pygame.image.load("MyPaintings/"+text_input.text+".png"), (700, 700))
         warning_visible = False
     except FileNotFoundError:
         warning_visible = True
