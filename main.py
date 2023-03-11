@@ -96,13 +96,13 @@ def canvas_():
 
 
 def save():
-    pygame.image.save(canvas.surface, "C:/Users/dell/Documents/MyPaint/"+text_input.text+".png")
+    pygame.image.save(canvas.surface, "MyPaintings/"+text_input.text+".png")
 
 
 def load():
     global warning_visible
     try:
-        canvas.canvas = pygame.image.load("C:/Users/dell/Documents/MyPaint/"+text_input.text+".png").copy()
+        canvas.canvas = pygame.image.load("MyPaintings/"+text_input.text+".png").copy()
         warning_visible = False
     except FileNotFoundError:
         warning_visible = True
