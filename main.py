@@ -1,9 +1,52 @@
 import sys
 
-import pygame.draw
+from GUI import *
 
-from UserInterface import *
-from Canvas import *
+
+class Canvas:
+    def __init__(self):
+        self.size = (700, 700)
+        self.position = (25, 25)
+
+        self.surface = pygame.Surface(self.size)
+        self.surface_rect = self.surface.get_rect()
+        self.surface_rect.topleft = self.position
+
+        self.color = "#ffffff"
+        self.surface.fill(self.color)
+
+        self.canvas = pygame.Surface(self.size, pygame.SRCALPHA)
+        self.surface.blit(self.canvas, (0, 0))
+
+        self.m_pos = (0, 0)
+        self.o_pos = (0, 0)
+
+        self.mouse_over = False
+        self.clicked = False
+        self.clicked_ = False
+
+    def draw(self, _screen_):
+        pygame.draw.rect(
+            _screen_, "#000000",
+            pygame.Rect(self.position[0]-10, self.position[1]-10, self.size[0]+20, self.size[1]+20), 10
+        )
+        _screen_.blit(self.surface, self.surface_rect)
+
+    def update(self):
+        self.surface.fill(self.color)
+        self.surface.blit(self.canvas, (0, 0))
+        self.clicked_ = False
+
+        self.mouse_over = self.surface_rect.collidepoint(pygame.mouse.get_pos())
+        if self.mouse_over and pygame.mouse.get_pressed()[0] and not self.clicked and not pygame.mouse.in_use:
+            pygame.mouse.in_use = True
+            self.clicked = True
+            self.m_pos = (pygame.mouse.get_pos()[0]-self.position[0], pygame.mouse.get_pos()[1]-self.position[1])
+            self.o_pos = self.m_pos
+            self.clicked_ = True
+        if not pygame.mouse.get_pressed()[0]:
+            pygame.mouse.in_use = False
+            self.clicked = False
 
 
 class Guy:
@@ -96,69 +139,100 @@ def canvas_():
 
 
 def save():
-    pygame.image.save(canvas.surface, "MyPaintings/"+text_input.text+".png")
+    global files_screen
+    files_screen = FilesScreen((520, 500), (250, 100), "MyPaintings", "save")
 
 
 def load():
-    global warning_visible
-    try:
-        canvas.canvas = pygame.transform.scale(pygame.image.load("MyPaintings/"+text_input.text+".png"), (700, 700))
-        warning_visible = False
-    except FileNotFoundError:
-        warning_visible = True
+    global files_screen
+    files_screen = FilesScreen((520, 500), (250, 100), "MyPaintings", "open")
 
-
-pygame.init()
-
-screen = pygame.display.set_mode((995, 750))
-pygame.display.set_caption("My Paint")
-pygame.display.set_icon(pygame.image.load("images/icon.png"))
-
-pygame.mouse.in_use = False
-
-clock = pygame.time.Clock()
-FPS = 60
-
-canvas = Canvas()
-
-paint_button = ToggleableButton((820, 95), pygame.image.load("images/paint.png"), paint)
-fill_button = ToggleableButton((900, 95), pygame.image.load("images/fill bucket.png"), fill)
-eraser_button = ToggleableButton((820, 165), pygame.image.load("images/eraser.png"), erase)
-colorPicker_button = ToggleableButton((900, 165), pygame.image.load("images/color picker.png"), pick_color)
-canvas_button = ToggleableButton((865, 235), pygame.image.load("images/canvas.png"), canvas_)
-
-paint_button.linked_with = [fill_button, eraser_button, colorPicker_button, canvas_button]
-fill_button.linked_with = [paint_button, eraser_button, colorPicker_button, canvas_button]
-eraser_button.linked_with = [fill_button, paint_button, colorPicker_button, canvas_button]
-colorPicker_button.linked_with = [fill_button, eraser_button, paint_button, canvas_button]
-canvas_button.linked_with = [paint_button, fill_button, eraser_button, colorPicker_button]
-
-width_slider = Slider((780, 315), "Width", 0, 50, "#000000")
-red_slider = Slider((780, 365), "Red", 0, 255, "#ff0000")
-green_slider = Slider((780, 415), "Green", 0, 255, "#00ff00")
-blue_slider = Slider((780, 465), "Blue", 0, 255, "#0000ff")
-
-save_button = Button((810, 600), "save", save)
-load_button = Button((810, 630), "load", load)
-
-text_input = TextInput((780, 680))
-
-warning = pygame.font.Font("freesansbold.ttf", 10).render("! FILE NOT FOUND", True, "#ff0000")
-warning_visible = False
-
-color = (0, 0, 0)
-
-guys = []
 
 if __name__ == '__main__':
+    pygame.init()
+
+    screen = pygame.display.set_mode((995, 750))
+    pygame.display.set_caption("My Paint")
+    pygame.display.set_icon(pygame.image.load("images/icon.png"))
+
+    pygame.mouse.in_use = False
+
+    clock = pygame.time.Clock()
+    FPS = 60
+
+    canvas = Canvas()
+
+    paint_button = ToggleableButton(
+        (60, 60), (820, 95), image=pygame.image.load("images/paint.png"),
+        background=["#ff9966", "#ffbb99", "#33ff77", "#80ffaa"],
+        border_color=["#e64d00", "#ff7733", "#00cc44", "#00e64d"],
+        border_width=4, border_radius=15, command=paint
+    )
+    fill_button = ToggleableButton(
+        (60, 60), (900, 95), image=pygame.image.load("images/fill bucket.png"),
+        background=["#ff9966", "#ffbb99", "#33ff77", "#80ffaa"],
+        border_color=["#e64d00", "#ff7733", "#00cc44", "#00e64d"],
+        border_width=4, border_radius=15, command=fill
+    )
+    eraser_button = ToggleableButton(
+        (60, 60), (820, 165), image=pygame.image.load("images/eraser.png"),
+        background=["#ff9966", "#ffbb99", "#33ff77", "#80ffaa"],
+        border_color=["#e64d00", "#ff7733", "#00cc44", "#00e64d"],
+        border_width=4, border_radius=15, command=erase
+    )
+    colorPicker_button = ToggleableButton(
+        (60, 60), (900, 165), image=pygame.image.load("images/color picker.png"),
+        background=["#ff9966", "#ffbb99", "#33ff77", "#80ffaa"],
+        border_color=["#e64d00", "#ff7733", "#00cc44", "#00e64d"],
+        border_width=4, border_radius=15, command=pick_color
+    )
+    canvas_button = ToggleableButton(
+        (60, 60), (865, 235), image=pygame.image.load("images/canvas.png"),
+        background=["#ff9966", "#ffbb99", "#33ff77", "#80ffaa"],
+        border_color=["#e64d00", "#ff7733", "#00cc44", "#00e64d"],
+        border_width=4, border_radius=15, command=canvas_
+    )
+
+    paint_button.linked_with = [fill_button, eraser_button, colorPicker_button, canvas_button]
+    fill_button.linked_with = [paint_button, eraser_button, colorPicker_button, canvas_button]
+    eraser_button.linked_with = [fill_button, paint_button, colorPicker_button, canvas_button]
+    colorPicker_button.linked_with = [fill_button, eraser_button, paint_button, canvas_button]
+    canvas_button.linked_with = [paint_button, fill_button, eraser_button, colorPicker_button]
+
+    width_slider = Slider((780, 315), label="Width", min_value=0, max_value=255, color="#000000")
+    red_slider = Slider((780, 365), label="Red", min_value=0, max_value=255, color="#ff0000")
+    green_slider = Slider((780, 415), label="Green", min_value=0, max_value=255, color="#00ff00")
+    blue_slider = Slider((780, 465), label="Blue", min_value=0, max_value=255, color="#0000ff")
+
+    save_button = Button((110, 25), (865, 612), text="save", command=save)
+    load_button = Button((110, 25), (865, 642), text="load", command=load)
+
+    files_screen: Union[FilesScreen, None] = None
+
+    color = (0, 0, 0)
+
+    guys = []
     while True:
+        screen.fill("#2b2b2b")
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            text_input.update(event)
-
-        screen.fill("#2b2b2b")
+            if files_screen is not None:
+                files_screen.update(pygame.mouse.get_pos(), event)
+                if files_screen.return_value.split("|")[0] == "open":
+                    try:
+                        canvas.canvas = pygame.transform.scale(
+                            pygame.image.load("MyPaintings/" + files_screen.return_value.split("|")[1]),
+                            (700, 700))
+                    except FileNotFoundError:
+                        pass
+                if files_screen.return_value.split("|")[0] == "save":
+                    if files_screen.return_value.split("|")[1] != "":
+                        pygame.image.save(canvas.surface, "MyPaintings/" + files_screen.return_value.split("|")[1])
+                if files_screen.quit:
+                    files_screen = None
 
         pygame.draw.rect(screen, "#000000", pygame.Rect(750, 15, 230, 720), 10)
         pygame.draw.rect(screen, "darkslategray", pygame.Rect(760, 25, 210, 700))
@@ -177,32 +251,31 @@ if __name__ == '__main__':
         save_button.draw(screen)
         load_button.draw(screen)
 
-        text_input.draw(screen)
-
-        if warning_visible:
-            screen.blit(warning, (780, 703))
-
         color = (red_slider.value, green_slider.value, blue_slider.value)
 
         pygame.draw.rect(screen, "black", pygame.Rect(815, 485, 100, 100), 5)
         pygame.draw.rect(screen, color, pygame.Rect(820, 490, 90, 90))
+        if files_screen is None:
+            paint_button.update(pygame.mouse.get_pos())
+            fill_button.update(pygame.mouse.get_pos())
+            eraser_button.update(pygame.mouse.get_pos())
+            colorPicker_button.update(pygame.mouse.get_pos())
+            canvas_button.update(pygame.mouse.get_pos())
 
-        paint_button.update()
-        fill_button.update()
-        eraser_button.update()
-        colorPicker_button.update()
-        canvas_button.update()
+            width_slider.update()
+            red_slider.update()
+            green_slider.update()
+            blue_slider.update()
 
-        width_slider.update()
-        red_slider.update()
-        green_slider.update()
-        blue_slider.update()
+            save_button.update(pygame.mouse.get_pos())
+            load_button.update(pygame.mouse.get_pos())
 
-        save_button.update()
-        load_button.update()
+            canvas.update()
 
         canvas.draw(screen)
-        canvas.update()
+
+        if files_screen is not None:
+            files_screen.draw(screen)
 
         clock.tick(FPS)
         pygame.display.flip()
