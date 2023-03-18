@@ -1,5 +1,5 @@
 import sys
-
+import pygame.mouse
 from GUI import *
 
 
@@ -33,13 +33,14 @@ class Canvas:
         _screen_.blit(self.surface, self.surface_rect)
 
     def update(self):
+        global mouse_in_use
         self.surface.fill(self.color)
         self.surface.blit(self.canvas, (0, 0))
         self.clicked_ = False
 
         self.mouse_over = self.surface_rect.collidepoint(pygame.mouse.get_pos())
-        if self.mouse_over and pygame.mouse.get_pressed()[0] and not self.clicked and not pygame.mouse.in_use:
-            pygame.mouse.in_use = True
+        if self.mouse_over and pygame.mouse.get_pressed()[0] and not self.clicked and not mouse_in_use:
+            mouse_in_use = True
             self.clicked = True
             self.m_pos = (pygame.mouse.get_pos()[0]-self.position[0], pygame.mouse.get_pos()[1]-self.position[1])
             self.o_pos = self.m_pos
@@ -49,25 +50,25 @@ class Canvas:
             self.clicked = False
 
 
-class Guy:
-    def __init__(self, position, f_clr, t_clr):
+class Pixel:
+    def __init__(self, position, from_clr, to_clr):
         self.position = position
-        self.f_clr = f_clr
-        self.t_clr = t_clr
-        self.can_reproduce = False
+        self.from_clr = from_clr
+        self.to_clr = to_clr
+        self.can_clone = False
         try:
-            if pygame.Color(canvas.surface.get_at(self.position)) == pygame.Color(self.f_clr):
-                canvas.surface.set_at(self.position, self.t_clr)
-                self.can_reproduce = True
+            if pygame.Color(canvas.surface.get_at(self.position)) == pygame.Color(self.from_clr):
+                canvas.surface.set_at(self.position, self.to_clr)
+                self.can_clone = True
         except IndexError:
             pass
 
     def do_thing(self):
-        if self.can_reproduce:
-            guys[-1].append(Guy((self.position[0]+1, self.position[1]), self.f_clr, self.t_clr))
-            guys[-1].append(Guy((self.position[0]-1, self.position[1]), self.f_clr, self.t_clr))
-            guys[-1].append(Guy((self.position[0], self.position[1]+1), self.f_clr, self.t_clr))
-            guys[-1].append(Guy((self.position[0], self.position[1]-1), self.f_clr, self.t_clr))
+        if self.can_clone:
+            fill_tool_pixels[-1].append(Pixel((self.position[0] + 1, self.position[1]), self.from_clr, self.to_clr))
+            fill_tool_pixels[-1].append(Pixel((self.position[0] - 1, self.position[1]), self.from_clr, self.to_clr))
+            fill_tool_pixels[-1].append(Pixel((self.position[0], self.position[1] + 1), self.from_clr, self.to_clr))
+            fill_tool_pixels[-1].append(Pixel((self.position[0], self.position[1] - 1), self.from_clr, self.to_clr))
 
 
 def paint():
@@ -95,20 +96,20 @@ def erase():
 
 
 def fill():
-    global guys
+    global fill_tool_pixels
     start = False
     if canvas.clicked_:
-        guys.clear()
-        guys.append([])
+        fill_tool_pixels.clear()
+        fill_tool_pixels.append([])
         if pygame.Color(canvas.surface.get_at(canvas.m_pos)) != pygame.Color(color):
-            guys[0].append(Guy(canvas.m_pos, canvas.surface.get_at(canvas.m_pos), color))
+            fill_tool_pixels[0].append(Pixel(canvas.m_pos, canvas.surface.get_at(canvas.m_pos), color))
         start = True
     while start:
-        guys.append([])
-        for guy in guys[-2]:
+        fill_tool_pixels.append([])
+        for guy in fill_tool_pixels[-2]:
             guy.do_thing()
-        if len(guys[-1]) == 0:
-            guys.clear()
+        if len(fill_tool_pixels[-1]) == 0:
+            fill_tool_pixels.clear()
             start = False
     cc = canvas.surface.copy()
     cc.set_colorkey(canvas.color)
@@ -158,9 +159,10 @@ if __name__ == '__main__':
     pygame.mouse.in_use = False
 
     clock = pygame.time.Clock()
-    FPS = 60
+    FPS = 20
 
     canvas = Canvas()
+    # __________________________________________________________________________________________________________________
 
     paint_button = ToggleableButton(
         (60, 60), (820, 95), image=pygame.image.load("images/paint.png"),
@@ -198,20 +200,22 @@ if __name__ == '__main__':
     eraser_button.linked_with = [fill_button, paint_button, colorPicker_button, canvas_button]
     colorPicker_button.linked_with = [fill_button, eraser_button, paint_button, canvas_button]
     canvas_button.linked_with = [paint_button, fill_button, eraser_button, colorPicker_button]
+    # __________________________________________________________________________________________________________________
 
-    width_slider = Slider((780, 315), label="Width", min_value=0, max_value=255, color="#000000")
+    width_slider = Slider((780, 315), label="Width", min_value=0, max_value=50, color="#000000")
     red_slider = Slider((780, 365), label="Red", min_value=0, max_value=255, color="#ff0000")
     green_slider = Slider((780, 415), label="Green", min_value=0, max_value=255, color="#00ff00")
     blue_slider = Slider((780, 465), label="Blue", min_value=0, max_value=255, color="#0000ff")
+    color = (0, 0, 0)
+    # __________________________________________________________________________________________________________________
 
     save_button = Button((110, 25), (865, 612), text="save", command=save)
     load_button = Button((110, 25), (865, 642), text="load", command=load)
+    # __________________________________________________________________________________________________________________
 
     files_screen: Union[FilesScreen, None] = None
 
-    color = (0, 0, 0)
-
-    guys = []
+    fill_tool_pixels = []
     while True:
         screen.fill("#2b2b2b")
 
@@ -229,7 +233,7 @@ if __name__ == '__main__':
                     except FileNotFoundError:
                         pass
                 if files_screen.return_value.split("|")[0] == "save":
-                    if files_screen.return_value.split("|")[1] != "":
+                    if files_screen.return_value.split("|")[1] != "" and os.path.splitext(files_screen.return_value) in [".png", ".jpg", ".jpeg"]:
                         pygame.image.save(canvas.surface, "MyPaintings/" + files_screen.return_value.split("|")[1])
                 if files_screen.quit:
                     files_screen = None
@@ -262,10 +266,10 @@ if __name__ == '__main__':
             colorPicker_button.update(pygame.mouse.get_pos())
             canvas_button.update(pygame.mouse.get_pos())
 
-            width_slider.update()
-            red_slider.update()
-            green_slider.update()
-            blue_slider.update()
+            width_slider.update(pygame.mouse.get_pos())
+            red_slider.update(pygame.mouse.get_pos())
+            green_slider.update(pygame.mouse.get_pos())
+            blue_slider.update(pygame.mouse.get_pos())
 
             save_button.update(pygame.mouse.get_pos())
             load_button.update(pygame.mouse.get_pos())
@@ -276,6 +280,8 @@ if __name__ == '__main__':
 
         if files_screen is not None:
             files_screen.draw(screen)
+
+        update_mouse()
 
         clock.tick(FPS)
         pygame.display.flip()
