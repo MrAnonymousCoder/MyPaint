@@ -33,14 +33,12 @@ class Canvas:
         _screen_.blit(self.surface, self.surface_rect)
 
     def update(self):
-        global mouse_in_use
         self.surface.fill(self.color)
         self.surface.blit(self.canvas, (0, 0))
         self.clicked_ = False
 
         self.mouse_over = self.surface_rect.collidepoint(pygame.mouse.get_pos())
-        if self.mouse_over and pygame.mouse.get_pressed()[0] and not self.clicked and not mouse_in_use:
-            mouse_in_use = True
+        if self.mouse_over and pygame.mouse.get_pressed()[0] and not self.clicked:
             self.clicked = True
             self.m_pos = (pygame.mouse.get_pos()[0]-self.position[0], pygame.mouse.get_pos()[1]-self.position[1])
             self.o_pos = self.m_pos
@@ -72,10 +70,11 @@ class Pixel:
 
 
 def paint():
+    pygame.draw.rect(canvas.surface, "#ff0000", (0, 0, 100, 100))
     if canvas.mouse_over:
         m_pos = (pygame.mouse.get_pos()[0]-canvas.position[0], pygame.mouse.get_pos()[1]-canvas.position[1])
         pygame.draw.circle(canvas.surface, color, m_pos, width_slider.value/2)
-        pygame.draw.circle(canvas.surface, "#444444", m_pos, width_slider.value/2, 2)
+        pygame.draw.circle(canvas.surface, "#ff0000", m_pos, width_slider.value/2, 2)
     if canvas.clicked:
         canvas.o_pos = canvas.m_pos
         canvas.m_pos = (pygame.mouse.get_pos()[0]-canvas.position[0], pygame.mouse.get_pos()[1]-canvas.position[1])
@@ -118,20 +117,21 @@ def fill():
 
 def pick_color():
     if canvas.mouse_over:
+        print('\\')
         m_pos = (pygame.mouse.get_pos()[0]-canvas.position[0], pygame.mouse.get_pos()[1]-canvas.position[1])
         try:
             pygame.draw.circle(canvas.surface, canvas.surface.get_at(m_pos), (m_pos[0]+20, m_pos[1]-20), 20)
         except IndexError:
             pass
         pygame.draw.circle(canvas.surface, "#444444", (m_pos[0]+20, m_pos[1]-20), 20, 2)
-    if canvas.clicked:
+    if canvas.clicked and canvas.surface_rect.collidepoint(canvas.m_pos):
         clr = canvas.surface.get_at(canvas.m_pos)
         red_slider.set_value(clr[0])
         green_slider.set_value(clr[1])
         blue_slider.set_value(clr[2])
 
 
-def canvas_():
+def fill_canvas():
     if canvas.clicked:
         cc = canvas.surface.copy()
         cc.set_colorkey(canvas.color)
@@ -159,7 +159,7 @@ if __name__ == '__main__':
     pygame.mouse.in_use = False
 
     clock = pygame.time.Clock()
-    FPS = 20
+    FPS = 120
 
     canvas = Canvas()
     # __________________________________________________________________________________________________________________
@@ -192,7 +192,7 @@ if __name__ == '__main__':
         (60, 60), (865, 235), image=pygame.image.load("images/canvas.png"),
         background=["#ff9966", "#ffbb99", "#33ff77", "#80ffaa"],
         border_color=["#e64d00", "#ff7733", "#00cc44", "#00e64d"],
-        border_width=4, border_radius=15, command=canvas_
+        border_width=4, border_radius=15, command=fill_canvas
     )
 
     paint_button.linked_with = [fill_button, eraser_button, colorPicker_button, canvas_button]
@@ -218,6 +218,7 @@ if __name__ == '__main__':
     fill_tool_pixels = []
     while True:
         screen.fill("#2b2b2b")
+        canvas.draw(screen)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -225,17 +226,17 @@ if __name__ == '__main__':
                 sys.exit()
             if files_screen is not None:
                 files_screen.update(pygame.mouse.get_pos(), event)
-                if files_screen.return_value.split("|")[0] == "open":
-                    try:
-                        canvas.canvas = pygame.transform.scale(
-                            pygame.image.load("MyPaintings/" + files_screen.return_value.split("|")[1]),
-                            (700, 700))
-                    except FileNotFoundError:
-                        pass
-                if files_screen.return_value.split("|")[0] == "save":
-                    if files_screen.return_value.split("|")[1] != "" and os.path.splitext(files_screen.return_value) in [".png", ".jpg", ".jpeg"]:
-                        pygame.image.save(canvas.surface, "MyPaintings/" + files_screen.return_value.split("|")[1])
                 if files_screen.quit:
+                    if files_screen.return_value.split("|")[0] == "open":
+                        try:
+                            canvas.canvas = pygame.transform.scale(
+                                pygame.image.load("MyPaintings/" + files_screen.return_value.split("|")[1]),
+                                (700, 700))
+                        except FileNotFoundError:
+                            pass
+                    if files_screen.return_value.split("|")[0] == "save":
+                        if files_screen.return_value.split("|")[1] != "" and os.path.splitext(files_screen.return_value) in [".png", ".jpg", ".jpeg"]:
+                            pygame.image.save(canvas.surface, "MyPaintings/" + files_screen.return_value.split("|")[1])
                     files_screen = None
 
         pygame.draw.rect(screen, "#000000", pygame.Rect(750, 15, 230, 720), 10)
@@ -275,8 +276,6 @@ if __name__ == '__main__':
             load_button.update(pygame.mouse.get_pos())
 
             canvas.update()
-
-        canvas.draw(screen)
 
         if files_screen is not None:
             files_screen.draw(screen)
